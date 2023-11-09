@@ -1,0 +1,159 @@
+<!doctype html>
+<html>
+<head>
+    <style>
+        /* Stile globale */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Intestazione */
+        header {
+            background-color: #3498db;
+            color: #fff;
+            text-align: center;
+            padding: 20px;
+        }
+
+        /* Contenitore principale */
+        main {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Stili per la lista della fila */
+        #student-list {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        #student-list li {
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #student-list button {
+            background-color: #e74c3c;
+            color: #fff;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <!-- Intestazione -->
+    </header>
+    <main>
+        <!-- Contenuto principale -->
+        <ul id="student-list">
+            <!-- Lista degli studenti -->
+        </ul>
+        <form id="registration-form">
+            <!-- Modulo di registrazione -->
+            <input type="text" id="student-name" placeholder="Nome studente">
+            <button type="submit">Aggiungi</button>
+        </form>
+    </main>
+
+    <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-database.js"></script>
+    <script>
+        // Inizializza Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyBuoUzIXM9f75hYoNUANx5KqG3mhi_UuB0",
+            authDomain: "fila-bagno-80ff9.firebaseapp.com",
+            databaseURL: "https://fila-bagno-80ff9-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "fila-bagno-80ff9",
+            storageBucket: "fila-bagno-80ff9.appspot.com",
+            messagingSenderId: "425355361558",
+            appId: "1:425355361558:web:70366f1cc97db48915a437",
+            measurementId: "G-X400E56H9D"
+        };
+        firebase.initializeApp(firebaseConfig);
+
+        // Crea il riferimento al database
+        const database = firebase.database();
+        const queueRef = database.ref('queue');
+
+        // Variabile per tenere traccia degli studenti in fila
+        let queue = [];
+
+        // Funzione per aggiungere uno studente alla fila e scriverlo nel database
+        function addToQueueAndDatabase(studentName) {
+            const student = {
+                name: studentName
+            };
+            const newStudentRef = queueRef.push(); // Genera una nuova chiave univoca nel database
+            newStudentRef.set(student); // Scrivi lo studente nel database
+            updateQueueStatus(); // Aggiorna la visualizzazione
+        }
+
+        // Funzione per leggere la fila dal database e aggiornare la visualizzazione
+        function readQueueFromDatabase() {
+            queueRef.on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    queue = Object.values(data);
+                } else {
+                    queue = [];
+                }
+                updateQueueStatus(); // Aggiorna la visualizzazione
+            });
+        }
+
+        // Funzione per rimuovere uno studente dalla fila
+        function removeFromQueue(index) {
+            if (index >= 0 && index < queue.length) {
+                const studentKey = Object.keys(queueRef)[index];
+                queueRef.child(studentKey).remove(); // Rimuovi lo studente dal database
+                updateQueueStatus();
+            }
+        }
+
+        // Funzione per visualizzare l'intera fila
+        function displayQueue() {
+            const queueList = document.getElementById("student-list");
+            queueList.innerHTML = "";
+            queue.forEach((student, index) => {
+                const listItem = document.createElement("li");
+                listItem.textContent = student.name;
+                const removeButton = document.createElement("button");
+                removeButton.textContent = "Rimuovi";
+                removeButton.addEventListener("click", () => {
+                    removeFromQueue(index);
+                });
+                listItem.appendChild(removeButton);
+                queueList.appendChild(listItem);
+            });
+        }
+
+        // Funzione per aggiornare lo stato della fila
+        function updateQueueStatus() {
+            displayQueue();
+        }
+
+        // Gestione della sottomissione
+        const registrationForm = document.getElementById("registration-form");
+        registrationForm.addEventListener("submit", function(event) {
+            event.preventDefault();
+            const studentName = document.getElementById("student-name").value;
+            addToQueueAndDatabase(studentName);
+            registrationForm.reset();
+        });
+
+        // Inizia la lettura iniziale del database
+        readQueueFromDatabase();
+    </script>
+
+</body></html>
